@@ -9,11 +9,10 @@ class PipelineStack(core.Stack):
         super().__init__(scope,id,**kwargs)
 
         source_artifact = codepipeline.Artifact()
-        cloud_assembly_artifact = codepipeline.Artifact()
+
 
         pipeline = pipelines.CdkPipeline(self, 'Pipeline',
 
-            cloud_assembly_artifact=cloud_assembly_artifact,
             pipeline_name='trainerPipeline',
 
             source_action=cpactions.GitHubSourceAction(
@@ -26,6 +25,5 @@ class PipelineStack(core.Stack):
 
             synth_action=pipelines.SimpleSynthAction(
                 source_artifact=source_artifact,
-                cloud_assembly_artifact=cloud_assembly_artifact,
                 install_command='npm install -g aws-cdk && pip install -r requirements.txt',
                 synth_command= 'cdk synth'))
