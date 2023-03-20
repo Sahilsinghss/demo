@@ -1,18 +1,31 @@
-import aws_cdk as cdk
-from constructs import Construct
-from aws_cdk.pipelines import CodePipeline, CodePipelineSource, ShellStep
+from aws_cdk import core
+from aws_cdk import aws_codepipeline as codepipeline
+from aws_cdk import aws_codepipeline_actions as cpactions
+from aws_cdk import pipelines
 
-class MyPipelineStack(cdk.Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
-        super().__init__(scope, construct_id, **kwargs)
+class PipelineStack(core.Stack):
+    def __init__(self,scope:core.Construct,id:str,**kwargs):
+        super().__init__(scope,id,**kwargs)
 
-        pipeline =  CodePipeline(self, "Pipeline", 
-                        pipeline_name="MyPipeline",
-                        synth=ShellStep("Synth", 
-                            input=CodePipelineSource.git_hub("Sahilsinghss/demo", "main"),
-                            commands=["npm install -g aws-cdk", 
-                                "python -m pip install -r requirements.txt", 
-                                "cdk synth"]
-                        )
-                    )
+        source_artifact = codepipeline.Artifact()
+        cloud_assembly_artifact = codepipeline.Artifact()
+
+        pipeline = pipelines.CdkPipeline(self, 'Pipeline',
+
+            cloud_assembly_artifact=cloud_assembly_artifact,
+            pipeline_name='trainerPipeline',
+
+            source_action=cpactions.GitHubSourceAction(
+                action_name='Github',
+                output=source_artifact,
+                oauth_token=core.SecretValue.secrets_manager('trainer-github-token'),
+                owner='Sahilsinghss', #"GITHUB-OWNER"
+                repo='demo', #"GITHUB-REPO"
+                trigger=cpactions.GitHubTrigger.POLL),
+
+            synth_action=pipelines.SimpleSynthAction(
+                source_artifact=source_artifact,
+                cloud_assembly_artifact=cloud_assembly_artifact,
+                install_command='npm install -g aws-cdk && pip install -r requirements.txt',
+                synth_command= 'cdk synth'))
